@@ -1,9 +1,12 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+)
 
 type Node struct {
 	data int
+	height int
 	left *Node
 	right *Node
 }
@@ -15,15 +18,71 @@ type Node struct {
 	Two variables pointing to the same address does not mean they are the same
 */
 
+func max(a int, b int) int {
+	if a > b {
+		return a
+	} else {
+		return b
+	}
+}
+
+func height(root *Node) int {
+	if root == nil {
+		return 0
+	} else {
+		return root.height
+	}
+}
+
+func leftRotate(root *Node) *Node {
+	var tmp *Node
+	tmp = root
+	root = root.right
+	tmp.right = root.left
+	root.left = tmp
+	tmp.height = max(height(tmp.left), height(tmp.right)) + 1
+	root.height = max(height(root.left), height(root.right)) + 1
+	return root
+}
+
+func rightRotate(root *Node) *Node {
+	var tmp *Node
+	tmp = root
+	root = root.left
+	tmp.left = root.right
+	root.right = tmp
+	tmp.height = max(height(tmp.left), height(tmp.right)) + 1
+	root.height = max(height(root.left), height(root.right)) + 1
+	return root
+}
+
 func insert(root *Node, data int) *Node { 
 	if root == nil {
 		fmt.Println("inserting:", data)
-		root = &Node{data, nil, nil}
+		root = &Node{data, 1, nil, nil} //take height of leaf as 1
 	} else {
 		if data > root.data {
 			root.right = insert(root.right, data)
 		} else {
 			root.left = insert(root.left, data)
+		}
+		root.height = max(height(root.left), height(root.right)) + 1
+		f := height(root.left) - height(root.right)
+		fmt.Println("balance factor on node", root.data, "is", f)
+		if f < -1 && data > root.right.data { //case 1: right-right case
+			fmt.Println("balancing tree...right-right case")
+			root = leftRotate(root)
+		} else if f < -1 && data < root.right.data { //case 2: right-left case
+			fmt.Println("balancing tree...right-left case")
+			root.right = rightRotate(root.right)
+			root = leftRotate(root)
+		} else if f > 1 && data < root.left.data { //case 3: left-left case
+			fmt.Println("balancing tree...left-left case")
+			root = rightRotate(root)
+		} else if f > 1 && data > root.left.data { //case 4: left-right case
+			fmt.Println("balancing tree...left-right case")
+			root.left = leftRotate(root.left)
+			root = rightRotate(root)
 		}
 	}
 	return root
@@ -87,9 +146,28 @@ func maxDepth(root *Node) int {
 	}
 }
 
+func longestPath(root *Node) []int {
+	if root == nil {
+		return []int{}
+	} else {
+		fmt.Println("on node", root.data)
+		path := []int{root.data}
+		lpath := longestPath(root.left)
+		rpath := longestPath(root.right)
+
+		fmt.Println("comparing", lpath, rpath)
+		if len(lpath) > len(rpath) {
+			return append(path, lpath...)
+		} else {
+			return append(path, rpath...)
+		}
+	}
+}
+
 func printSideWays(root *Node, indent string) {
 	if root != nil {
 		printSideWays(root.right, indent + "    ")
+		//fmt.Println(indent, root.data, "->" ,root.height)
 		fmt.Println(indent, root.data)
 		printSideWays(root.left, indent + "    ")
 	}
@@ -103,21 +181,40 @@ func printByLevel(root *Node, level int) {
 	}
 }
 
+func checkBalance(root *Node) int {
+	if root == nil {
+		return 0
+	} else {
+		lh := checkBalance(root.left)
+		rh := checkBalance(root.right)
+		fmt.Println("on node", root.data, "balance factor", lh-rh)
+		if lh > rh {
+			return lh+1
+		} else {
+			return rh+1
+		}
+	}
+}
+
 func main() {
 	var bst *Node
-	for i, num := range []int{10, 7, 16, 11, 6, 8, 20, 21} {
+	for i, num := range []int{11, 7, 16, 20, 29, 15, 14} {
 		fmt.Println(i, num)
 		if bst == nil {
 			bst = insert(bst, 10) //first call to insert needs to return the new node created as empty bst will point to that here
 		} else {
 			insert(bst, num) // no need to write bst = insert(bst, num) as passed bst will retain pointers that we added as children
+			printSideWays(bst, "")
 		}
 	}
-	fmt.Println("printing tree sideways")
-	printSideWays(bst, "")
-	fmt.Println("printing tree by level")
-	printByLevel(bst, 0)
-	remove(bst, 10)
-	printSideWays(bst, "")
-	fmt.Println("subtree height", maxDepth(bst))
+	//fmt.Println("printing tree sideways")
+	//printSideWays(bst, "")
+	//fmt.Println("printing tree by level")
+	//printByLevel(bst, 0)
+	//remove(bst, 10)
+	//printSideWays(bst, "")
+	//fmt.Println("subtree height", maxDepth(bst))
+	//fmt.Println("longest path", longestPath(bst))
+	//balance(bst)
+	//printSideWays(bst, "")
 }
